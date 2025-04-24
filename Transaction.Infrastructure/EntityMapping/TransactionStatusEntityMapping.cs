@@ -16,17 +16,12 @@ public class TransactionStatusEntityMapping : IEntityTypeConfiguration<Transacti
             .ValueGeneratedOnAdd();
 
         builder.Property(x => x.Description)
-            .HasColumnType("varchar")
+            .HasColumnType("text")
             .HasColumnName("description")
             .HasMaxLength(50)
             .IsRequired();
 
         builder.HasIndex(d => d.Description)
             .IsUnique();
-
-        //builder.HasMany(d => d.Transactions)
-        //    .WithOne(d => d.Status)
-        //    .HasForeignKey(d => d.StatusId)
-        //    .OnDelete(DeleteBehavior.Restrict);
     }
 }

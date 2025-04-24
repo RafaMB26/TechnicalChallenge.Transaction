@@ -15,7 +15,7 @@ public class TransactionEntityMapping : IEntityTypeConfiguration<TransactionEnti
             .ValueGeneratedOnAdd();
 
         builder.Property(x => x.TransactionExternalId)
-            .HasColumnType("uniqueidentifier")
+            .HasColumnType("uuid")
             .HasColumnName("transaction_external_id")
             .IsRequired();
 
@@ -23,27 +23,27 @@ public class TransactionEntityMapping : IEntityTypeConfiguration<TransactionEnti
             .IsUnique();
 
         builder.Property(x => x.CreatedAt)
-            .HasColumnType("datetime")
+            .HasColumnType("timestamp with time zone")
             .HasColumnName("created_at")
             .IsRequired();
 
         builder.Property(x => x.SourceAccountId)
-            .HasColumnType("uniqueidentifier")
+            .HasColumnType("uuid")
             .HasColumnName("source_account_id")
             .IsRequired();
 
         builder.Property(x => x.TargetAccountId)
-            .HasColumnType("uniqueidentifier")
+            .HasColumnType("uuid")
             .HasColumnName("target_account_id")
             .IsRequired();
 
         builder.Property(x => x.TransferTypeId)
-            .HasColumnType("int")
+            .HasColumnType("integer")
             .HasColumnName("transfer_type_id")
             .IsRequired();
 
         builder.Property(x => x.Value)
-            .HasColumnType("decimal")
+            .HasColumnType("numeric")
             .HasColumnName("value")
             .IsRequired();
 

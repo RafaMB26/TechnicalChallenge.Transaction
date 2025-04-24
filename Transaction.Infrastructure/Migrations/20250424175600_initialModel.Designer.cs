@@ -12,7 +12,7 @@ using Transaction.Infrastructure;
 namespace Transaction.Infrastructure.Migrations
 {
     [DbContext(typeof(TransactionDbContext))]
-    [Migration("20250424165919_initialModel")]
+    [Migration("20250424175600_initialModel")]
     partial class initialModel
     {
         /// <inheritdoc />
@@ -34,31 +34,40 @@ namespace Transaction.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<Guid>("SourceAccountId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_account_id");
 
                     b.Property<int>("StatusId")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("TargetAccountId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_account_id");
 
                     b.Property<Guid>("TransactionExternalId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("transaction_external_id");
 
                     b.Property<int>("TransferTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("transfer_type_id");
 
                     b.Property<decimal>("Value")
-                        .HasColumnType("numeric");
+                        .HasColumnType("numeric")
+                        .HasColumnName("value");
 
                     b.HasKey("Id");
 
                     b.HasIndex("StatusId");
 
-                    b.ToTable("Transactions");
+                    b.HasIndex("TransactionExternalId")
+                        .IsUnique();
+
+                    b.ToTable("transaction", (string)null);
                 });
 
             modelBuilder.Entity("Transaction.Domain.Entities.TransactionStatusEntity", b =>
@@ -71,11 +80,16 @@ namespace Transaction.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
                     b.HasKey("Id");
 
-                    b.ToTable("TransactionStatuses");
+                    b.HasIndex("Description")
+                        .IsUnique();
+
+                    b.ToTable("cat_transaction_status", (string)null);
                 });
 
             modelBuilder.Entity("Transaction.Domain.Entities.TransactionEntity", b =>
@@ -83,7 +97,7 @@ namespace Transaction.Infrastructure.Migrations
                     b.HasOne("Transaction.Domain.Entities.TransactionStatusEntity", "Status")
                         .WithMany("Transactions")
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Status");
