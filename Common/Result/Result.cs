@@ -1,4 +1,4 @@
-﻿namespace Transaction.Domain.Result;
+﻿namespace Common.Result;
 
 public class Result<T>
 {
@@ -12,12 +12,12 @@ public class Result<T>
         Error = error;
     }
 
-    public bool IsSuccess 
-    { 
-        get 
+    public bool IsSuccess
+    {
+        get
         {
             return Error is not null && String.IsNullOrEmpty(Error.Message);
-        } 
+        }
     }
     public Error Error { get; set; }
     public T Data { get; set; }

@@ -1,0 +1,6 @@
+@Antifraud.Presentation_HostAddress = http://localhost:5183
+
+GET {{Antifraud.Presentation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

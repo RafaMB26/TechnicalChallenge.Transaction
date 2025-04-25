@@ -1,4 +1,6 @@
-﻿namespace Transaction.Domain.Entities;
+﻿using Common.Entities;
+
+namespace Transaction.Domain.Entities;
 
 public class TransactionStatusEntity: Entity
 {

@@ -1,4 +1,4 @@
-﻿namespace Transaction.Domain.Enums;
+﻿namespace Common.Enums;
 
 public enum TransactionStatusEnum
 {

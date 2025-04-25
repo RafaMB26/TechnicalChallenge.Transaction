@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Common.DTOs;
+using Common.Enums;
+using Common.Result;
+using Microsoft.Extensions.Logging;
 using Transaction.Domain.DTOs;
 using Transaction.Domain.Entities;
-using Transaction.Domain.Enums;
+using Transaction.Domain.Interfaces.Producers;
 using Transaction.Domain.Interfaces.Repositories;
 using Transaction.Domain.Interfaces.Services;
-using Transaction.Domain.Result;
 
 namespace Transaction.Application.Services;
 
@@ -12,16 +14,51 @@ public class TransactionService : ITransactionService
 {
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionStatusRepository _transactionStatusRepository;
+    private readonly ITransactionProducer _transactionProducer;
     private readonly ILogger<TransactionService> _logger;
     public TransactionService(
         ITransactionRepository transactionRepository, 
         ITransactionStatusRepository transactionStatusRepository,
+        ITransactionProducer transactionProducer,
         ILogger<TransactionService> logger)
     {
         _transactionRepository = transactionRepository;
         _transactionStatusRepository = transactionStatusRepository;
+        _transactionProducer = transactionProducer;
         _logger = logger;
     }
+
+    public async Task<Result<TransactionDTO>> GetTransactionByExternalIdAsync(Guid externalId)
+    {
+        try
+        {
+            var transactionResult = await _transactionRepository.GetTransactionByPublicIdAsync(externalId);
+            if (!transactionResult.IsSuccess)
+                return new Result<TransactionDTO>(transactionResult.Error);
+            if (transactionResult.Data is null)
+                return new Result<TransactionDTO>(new Error($"The transaction with id {externalId} does not exist.", 404));
+
+            var transaction = transactionResult.Data;
+            var transactionDto = new TransactionDTO()
+            {
+                CreatedAt = transaction.CreatedAt,
+                SourceAccountId = transaction.SourceAccountId,
+                Status = transaction.Status.Id,
+                TargetAccountId = transaction.TargetAccountId,
+                TransactionExternalId = transaction.TransactionExternalId,
+                TransferTypeId = transaction.TransferTypeId,
+                Value = transaction.Value
+            };
+            return new Result<TransactionDTO>(transactionDto);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error on {nameof} : Error {ex}", nameof(GetTransactionByExternalIdAsync), ex.Message);
+            return new Result<TransactionDTO>(new Error($"Unexpected error trying to get the transaction {externalId}", 503));
+        }
+    }
+
     public async Task<Result<TransactionDTO>> SendTransactionAsync(CreateTransactionDTO transaction)
     {
         try
@@ -52,6 +89,7 @@ public class TransactionService : ITransactionService
             if (!createTransactionResult.IsSuccess)
                 return new Result<TransactionDTO>(createTransactionResult.Error);
 
+
             var transactionData = createTransactionResult.Data;
 
             var createdTransaction = new TransactionDTO()
@@ -64,6 +102,9 @@ public class TransactionService : ITransactionService
                 TransferTypeId = transactionData.TransferTypeId,
                 Value = transactionData.Value
             };
+
+            await _transactionProducer.ProduceAsync(createdTransaction);
+
             return new Result<TransactionDTO>(createdTransaction);
         }
         catch (Exception ex)

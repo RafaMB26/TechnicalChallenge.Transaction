@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Common.Entities;
+using Common.Interfaces;
+using Common.Result;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Transaction.Domain.Entities;
-using Transaction.Domain.Interfaces.Repositories;
-using Transaction.Domain.Result;
 
 namespace Transaction.Infrastructure.Repositories;
 

@@ -1,4 +1,4 @@
-﻿namespace Transaction.Domain.Result;
+﻿namespace Common.Result;
 
 public class Error
 {

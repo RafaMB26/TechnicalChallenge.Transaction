@@ -1,7 +1,7 @@
-﻿using Transaction.Domain.Entities;
-using Transaction.Domain.Result;
+﻿using Common.Entities;
+using Common.Result;
 
-namespace Transaction.Domain.Interfaces.Repositories;
+namespace Common.Interfaces;
 
 public interface IRepository<T> where T : Entity
 {

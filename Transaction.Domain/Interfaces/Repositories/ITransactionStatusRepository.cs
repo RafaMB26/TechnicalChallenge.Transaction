@@ -1,6 +1,7 @@
-﻿using Transaction.Domain.Entities;
-using Transaction.Domain.Enums;
-using Transaction.Domain.Result;
+﻿using Common.Enums;
+using Common.Interfaces;
+using Common.Result;
+using Transaction.Domain.Entities;
 
 namespace Transaction.Domain.Interfaces.Repositories;
 
