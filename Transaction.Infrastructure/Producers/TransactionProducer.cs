@@ -3,6 +3,7 @@ using Common.Result;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 using Transaction.Domain.Config;
 using Transaction.Domain.Interfaces.Producers;
 
@@ -27,12 +28,13 @@ public class TransactionProducer : ITransactionProducer
             Acks = Acks.Leader
         };
 
-        using var producer = new ProducerBuilder<Null, TransactionDTO>(config).Build();
+        using var producer = new ProducerBuilder<Null, string>(config).Build();
         try
         {
+            var transactionSerialized = JsonSerializer.Serialize(transactionEvent);
             var deliveryResult = await producer.ProduceAsync(
                 "topic-transaction", 
-                new Message<Null, TransactionDTO> { Value  = transactionEvent });
+                new Message<Null, string> { Value  = transactionSerialized });
 
             _logger.LogInformation("Message delivered: {transactionEvent}", transactionEvent);
         }

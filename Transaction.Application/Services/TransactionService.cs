@@ -82,7 +82,7 @@ public class TransactionService : ITransactionService
                 Value = transaction.Value,
                 TransferTypeId = transaction.TransferTypeId,
                 CreatedAt = DateTime.UtcNow,
-                TransactionExternalId = new Guid(),
+                TransactionExternalId = Guid.NewGuid(),
             };
 
             var createTransactionResult = await _transactionRepository.CreateAsync(newTransaction);

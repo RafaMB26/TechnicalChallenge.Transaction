@@ -7,6 +7,6 @@ namespace Transaction.Domain.Interfaces.Services;
 
 public interface ITransactionService
 {
-    Task<Result<TransactionDTO>> GetTransactionByExternalIdAsync(Guid externalId);
+    public Task<Result<TransactionDTO>> GetTransactionByExternalIdAsync(Guid externalId);
     public Task<Result<TransactionDTO>> SendTransactionAsync(CreateTransactionDTO transaction);
 }

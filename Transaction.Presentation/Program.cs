@@ -8,6 +8,7 @@ using Transaction.Domain.Interfaces.Producers;
 using Transaction.Domain.Interfaces.Repositories;
 using Transaction.Domain.Interfaces.Services;
 using Transaction.Infrastructure;
+using Transaction.Infrastructure.Producers;
 using Transaction.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,10 +20,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<ITransactionStatusRepository, TransactionStatusRepository>();
-
-builder.Services.AddScoped<ITransactionProducer, ITransactionProducer>();
-
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+
+builder.Services.AddSingleton<ITransactionProducer, TransactionProducer>();
 
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 
@@ -42,7 +42,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/{externalId:guid}", async ([FromServices] TransactionService transactionService, Guid externalId) =>
+app.MapGet("/{externalId:guid}", async ([FromServices] ITransactionService transactionService, Guid externalId) =>
 {
     if (externalId == Guid.Empty)
         return Results.BadRequest(new Error("The transaction external id is incorrect", 400));
@@ -58,11 +58,11 @@ app.MapGet("/{externalId:guid}", async ([FromServices] TransactionService transa
 }).WithName("Get transaction by external id")
 .WithOpenApi();
 
-app.MapPost("/", async ([FromServices] TransactionService transactionService, [FromBody] CreateTransactionDTO transaction) =>
+app.MapPost("/", async ([FromServices] ITransactionService transactionService, [FromBody] CreateTransactionDTO transaction) =>
 {
     var transactionCreationResult = await transactionService.SendTransactionAsync(transaction);
 
-    if (!transactionCreationResult.IsSuccess && transactionCreationResult.Error.Code >= 400 || transactionCreationResult.Error.Code < 500)
+    if (!transactionCreationResult.IsSuccess && (transactionCreationResult.Error.Code >= 400 || transactionCreationResult.Error.Code < 500))
         return Results.BadRequest(transactionCreationResult.Error);
     else if(!transactionCreationResult.IsSuccess && transactionCreationResult.Error.Code >= 500)
         return Results.Problem(transactionCreationResult.Error.Message);

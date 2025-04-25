@@ -3,6 +3,7 @@ using Common.DTOs;
 using Common.Enums;
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 using Transaction.Domain.Config;
 using Transaction.Domain.Interfaces.Repositories;
 
@@ -34,7 +35,7 @@ namespace Transaction.Presentation.Consumers
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            using var consumer = new ConsumerBuilder<Ignore, TransactionProcessedStatusDTO>(config).Build();
+            using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
             consumer.Subscribe("group-transaction");
 
             while (!stoppingToken.IsCancellationRequested)
@@ -49,10 +50,14 @@ namespace Transaction.Presentation.Consumers
                     if (transactionEvent is null)
                         continue;
 
-                    var currentTransactionResult = await _transactionRepository.GetTransactionByPublicIdAsync(transactionEvent.TransactionExternalId);
+                    var transaction = JsonSerializer.Deserialize<TransactionDTO>(transactionEvent);
+                    if (transaction is null)
+                        continue;
+
+                    var currentTransactionResult = await _transactionRepository.GetTransactionByPublicIdAsync(transaction.TransactionExternalId);
                     if (currentTransactionResult.IsSuccess && currentTransactionResult.Data is not null)
                     {
-                        var statusToUpdate = transactionEvent.IsCorrect ? TransactionStatusEnum.Approved : TransactionStatusEnum.Rejected;
+                        var statusToUpdate = currentTransactionResult.IsSuccess ? TransactionStatusEnum.Approved : TransactionStatusEnum.Rejected;
                         var currentTransaction = currentTransactionResult.Data!;
                         var statusResult = await _transactionStatusRepository.GetTransactionTypeByName(statusToUpdate);
                         
@@ -62,7 +67,7 @@ namespace Transaction.Presentation.Consumers
                         currentTransaction.Status = statusResult.IsSuccess ? statusResult.Data : currentTransaction.Status;
                         var statusUpdateResult = await _transactionRepository.UpdateAsync(currentTransaction.Id, currentTransaction);
                         if (!statusUpdateResult.IsSuccess)
-                            _logger.LogError("An error happened while trying to update the status of the transaction {transactionExternalId} to {statusToUpdate}", transactionEvent.TransactionExternalId, statusToUpdate);
+                            _logger.LogError("An error happened while trying to update the status of the transaction {transactionExternalId} to {statusToUpdate}", transaction.TransactionExternalId, statusToUpdate);
                     }
 
                 }
