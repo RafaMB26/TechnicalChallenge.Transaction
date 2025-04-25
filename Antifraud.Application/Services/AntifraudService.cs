@@ -42,8 +42,9 @@ public class AntifraudService : IAntifraudService
             else
             {
                 resultTransaction.IsCorrect = true;
+                await _transactionRepository.AddTransactionValueAsync(transaction.SourceAccountId, transaction.Value);
             }
-            await _transactionRepository.AddTransactionValueAsync(transaction.SourceAccountId, transaction.Value);
+           
             var statusTransaction = new TransactionProcessedStatusDTO()
             {
                 IsCorrect = resultTransaction.IsCorrect,

@@ -12,6 +12,7 @@ namespace Antifraud.Presentation.Consumers
         private readonly ILogger<TransactionEventConsumer> _logger;
         private readonly AppSettings _appSettings;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IConsumer<Null, string> _consumer;
         public TransactionEventConsumer(
             IServiceProvider serviceProvider, 
             IOptions<AppSettings> appSettings, 
@@ -20,59 +21,50 @@ namespace Antifraud.Presentation.Consumers
             _serviceProvider = serviceProvider;
             _logger = logger;
             _appSettings = appSettings.Value;
-        }
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
             var config = new ConsumerConfig
             {
                 BootstrapServers = _appSettings.KafkaServer,
                 GroupId = "group-transaction",
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
-
-            while (!stoppingToken.IsCancellationRequested)
+            _consumer = new ConsumerBuilder<Null, string>(config).Build();
+        }
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            return Task.Run(async () => 
             {
-                try
+                _consumer.Subscribe("topic-transaction");
+                using var scope = _serviceProvider.CreateScope();
+                IAntifraudService antifraudService = scope.ServiceProvider.GetRequiredService<IAntifraudService>();
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
-                    consumer.Subscribe("topic-transaction");
-                    using var scope = _serviceProvider.CreateScope();
-                    IAntifraudService _antifraudService = scope.ServiceProvider.GetRequiredService<IAntifraudService>();
                     try
                     {
-                        var consumeResult = consumer.Consume(TimeSpan.FromSeconds(5));
-                        if (consumeResult == null)
+                        var consumeResult = _consumer.Consume(TimeSpan.FromSeconds(5));
+                        if (consumeResult == null || consumeResult.Message?.Value == null)
                             continue;
 
-                        var transactionEvent = consumeResult.Message.Value;
-                        if (transactionEvent is null)
+                        var transaction = JsonSerializer.Deserialize<TransactionDTO>(consumeResult.Message.Value);
+                        if (transaction == null)
                             continue;
 
-                        var transaction = JsonSerializer.Deserialize<TransactionDTO>(transactionEvent);
-                        if (transaction is null)
-                            continue;
-
-                        var isTransactionCorrectResult = await _antifraudService.IsTransactionCorrectAsync(transaction);
-                        if (!isTransactionCorrectResult.IsSuccess)
-                            _logger.LogError("An unexpected error happened while trying to validate the transaction. Error {isTransactionCorrectResult}", isTransactionCorrectResult.Error);
-
+                        var result = await antifraudService.IsTransactionCorrectAsync(transaction);
+                        if (!result.IsSuccess)
+                        {
+                            _logger.LogError("Error validating transaction: {error}", result.Error);
+                        }
                     }
                     catch (KafkaException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
                     {
                         _logger.LogWarning("The topic is not available yet. Retrying in 10 seconds...");
-                        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                        //await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "An unexpected error happened at {nameof}", nameof(ExecuteAsync));
+                        _logger.LogError(ex, "Unexpected error in Kafka consumer.");
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Unexpected error on {nameof}", nameof(ExecuteAsync));
-                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
-                }
-            }
+            });
         }
     }
 }

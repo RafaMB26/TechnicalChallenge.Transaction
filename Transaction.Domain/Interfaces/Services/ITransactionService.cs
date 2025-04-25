@@ -9,5 +9,5 @@ public interface ITransactionService
 {
     public Task<Result<TransactionDTO>> GetTransactionByExternalIdAsync(Guid externalId);
     public Task<Result<TransactionDTO>> SendTransactionAsync(CreateTransactionDTO transaction);
-    public Task<Result<TransactionDTO>> UpdateTransactionStatus(TransactionDTO transaction);
+    public Task<Result<TransactionDTO>> UpdateTransactionStatus(TransactionProcessedStatusDTO transaction);
 }

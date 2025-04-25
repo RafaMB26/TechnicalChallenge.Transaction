@@ -114,12 +114,12 @@ public class TransactionService : ITransactionService
         }
     }
 
-    public async Task<Result<TransactionDTO>> UpdateTransactionStatus(TransactionDTO transaction)
+    public async Task<Result<TransactionDTO>> UpdateTransactionStatus(TransactionProcessedStatusDTO transactionStatus)
     {
-        var currentTransactionResult = await _transactionRepository.GetTransactionByPublicIdAsync(transaction.TransactionExternalId);
+        var currentTransactionResult = await _transactionRepository.GetTransactionByPublicIdAsync(transactionStatus.TransactionExternalId);
         if (currentTransactionResult.IsSuccess && currentTransactionResult.Data is not null)
         {
-            var statusToUpdate = currentTransactionResult.IsSuccess ? TransactionStatusEnum.Approved : TransactionStatusEnum.Rejected;
+            var statusToUpdate = transactionStatus.IsCorrect ? TransactionStatusEnum.Approved : TransactionStatusEnum.Rejected;
             var currentTransaction = currentTransactionResult.Data!;
             var statusResult = await _transactionStatusRepository.GetTransactionTypeByName(statusToUpdate);
 
@@ -129,7 +129,7 @@ public class TransactionService : ITransactionService
             currentTransaction.Status = statusResult.IsSuccess ? statusResult.Data : currentTransaction.Status;
             var statusUpdateResult = await _transactionRepository.UpdateAsync(currentTransaction.Id, currentTransaction);
             if (!statusUpdateResult.IsSuccess)
-                _logger.LogError("An error happened while trying to update the status of the transaction {transactionExternalId} to {statusToUpdate}", transaction.TransactionExternalId, statusToUpdate);
+                _logger.LogError("An error happened while trying to update the status of the transaction {transactionExternalId} to {statusToUpdate}", transactionStatus.TransactionExternalId, statusToUpdate);
 
             var updatedTransaction = new TransactionDTO()
             {

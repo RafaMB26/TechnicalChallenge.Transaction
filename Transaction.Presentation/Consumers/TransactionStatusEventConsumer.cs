@@ -1,4 +1,5 @@
 ﻿using Common.DTOs;
+using Common.Enums;
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -12,6 +13,7 @@ namespace Transaction.Presentation.Consumers
         private readonly AppSettings _appSettings;
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<TransactionStatusEventConsumer> _logger;
+        private readonly IConsumer<Null, string> _consumer;
         public TransactionStatusEventConsumer(
             IServiceProvider serviceProvider,
             IOptions<AppSettings> appSettings,
@@ -20,29 +22,26 @@ namespace Transaction.Presentation.Consumers
             _serviceProvider = serviceProvider;
             _logger = logger;
             _appSettings = appSettings.Value;
-        }
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
             var config = new ConsumerConfig
             {
                 BootstrapServers = _appSettings.KafkaServer,
                 GroupId = "group-transaction",
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
-
-
-            while (!stoppingToken.IsCancellationRequested)
+            _consumer = new ConsumerBuilder<Null, string>(config).Build();
+        }
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            return Task.Run(async () =>
             {
-                try
+                _consumer.Subscribe("topic-transaction-status");
+                using var scope = _serviceProvider.CreateScope();
+                ITransactionService _transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService>();
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
-                    consumer.Subscribe("topic-transaction-status");
-                    using var scope = _serviceProvider.CreateScope();
-                    ITransactionService _transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService>();
-
                     try
                     {
-                        var consumeResult = consumer.Consume(TimeSpan.FromSeconds(5));
+                        var consumeResult = _consumer.Consume(TimeSpan.FromSeconds(5));
                         if (consumeResult == null)
                             continue;
 
@@ -50,7 +49,7 @@ namespace Transaction.Presentation.Consumers
                         if (transactionEvent is null)
                             continue;
 
-                        var transaction = JsonSerializer.Deserialize<TransactionDTO>(transactionEvent);
+                        var transaction = JsonSerializer.Deserialize<TransactionProcessedStatusDTO>(transactionEvent);
                         if (transaction is null)
                             continue;
 
@@ -58,7 +57,11 @@ namespace Transaction.Presentation.Consumers
                         if (!updateResult.IsSuccess)
                             _logger.LogError($"An unexpected error happened while trying to update the transaction {transaction.TransactionExternalId}: Error {updateResult.Error.Message}");
                         else
-                            _logger.LogInformation($"Transaction updated {transaction.TransactionExternalId} to {transaction.Status}");
+                        {
+                            var transactionStatus = transaction.IsCorrect ? TransactionStatusEnum.Approved : TransactionStatusEnum.Approved;
+                            _logger.LogInformation($"Transaction updated {transaction.TransactionExternalId} to {transactionStatus.ToString()}");
+                        }
+                            
                     }
                     catch (KafkaException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
                     {
@@ -70,12 +73,7 @@ namespace Transaction.Presentation.Consumers
                         _logger.LogError(ex, "An unexpected error happened at {nameof}", nameof(ExecuteAsync));
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex,"Unexpected error on {nameof}", nameof(ExecuteAsync));
-                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
-                }
-            }
+            });
         }
     }
 }
