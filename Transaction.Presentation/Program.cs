@@ -52,7 +52,7 @@ app.MapGet("/{externalId:guid}", async ([FromServices] ITransactionService trans
 
     var transactionResult = await transactionService.GetTransactionByExternalIdAsync(externalId);
 
-    if (!transactionResult.IsSuccess && transactionResult.Error.Code >= 400 || transactionResult.Error.Code < 500)
+    if (!transactionResult.IsSuccess && (transactionResult.Error.Code >= 400 || transactionResult.Error.Code < 500))
         return Results.BadRequest(transactionResult.Error);
     else if (!transactionResult.IsSuccess && transactionResult.Error.Code >= 500)
         return Results.Problem(transactionResult.Error.Message);

@@ -43,7 +43,7 @@ public class TransactionService : ITransactionService
             {
                 CreatedAt = transaction.CreatedAt,
                 SourceAccountId = transaction.SourceAccountId,
-                Status = transaction.Status.Id,
+                Status = transaction.StatusId,
                 TargetAccountId = transaction.TargetAccountId,
                 TransactionExternalId = transaction.TransactionExternalId,
                 TransferTypeId = transaction.TransferTypeId,
