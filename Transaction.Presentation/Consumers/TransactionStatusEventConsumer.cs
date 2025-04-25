@@ -1,28 +1,23 @@
-﻿
-using Common.DTOs;
-using Common.Enums;
+﻿using Common.DTOs;
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 using Transaction.Domain.Config;
-using Transaction.Domain.Interfaces.Repositories;
+using Transaction.Domain.Interfaces.Services;
 
 namespace Transaction.Presentation.Consumers
 {
     public class TransactionStatusEventConsumer : BackgroundService
     {
-        private readonly ITransactionRepository _transactionRepository;
-        private readonly ITransactionStatusRepository _transactionStatusRepository;
         private readonly AppSettings _appSettings;
+        private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<TransactionStatusEventConsumer> _logger;
         public TransactionStatusEventConsumer(
-            ITransactionRepository transactionRepository,
-            ITransactionStatusRepository transactionStatusRepository,
+            IServiceProvider serviceProvider,
             IOptions<AppSettings> appSettings,
             ILogger<TransactionStatusEventConsumer> logger)
         {
-            _transactionRepository = transactionRepository;
-            _transactionStatusRepository = transactionStatusRepository;
+            _serviceProvider = serviceProvider;
             _logger = logger;
             _appSettings = appSettings.Value;
         }
@@ -31,49 +26,54 @@ namespace Transaction.Presentation.Consumers
             var config = new ConsumerConfig
             {
                 BootstrapServers = _appSettings.KafkaServer,
-                GroupId = "topic-transaction-status",
+                GroupId = "group-transaction",
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
-            consumer.Subscribe("group-transaction");
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var consumeResult = consumer.Consume(TimeSpan.FromSeconds(5));
-                    if (consumeResult == null)
-                        continue;
+                    using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
+                    consumer.Subscribe("topic-transaction-status");
+                    using var scope = _serviceProvider.CreateScope();
+                    ITransactionService _transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService>();
 
-                    var transactionEvent = consumeResult.Message.Value;
-                    if (transactionEvent is null)
-                        continue;
-
-                    var transaction = JsonSerializer.Deserialize<TransactionDTO>(transactionEvent);
-                    if (transaction is null)
-                        continue;
-
-                    var currentTransactionResult = await _transactionRepository.GetTransactionByPublicIdAsync(transaction.TransactionExternalId);
-                    if (currentTransactionResult.IsSuccess && currentTransactionResult.Data is not null)
+                    try
                     {
-                        var statusToUpdate = currentTransactionResult.IsSuccess ? TransactionStatusEnum.Approved : TransactionStatusEnum.Rejected;
-                        var currentTransaction = currentTransactionResult.Data!;
-                        var statusResult = await _transactionStatusRepository.GetTransactionTypeByName(statusToUpdate);
-                        
-                        if (!statusResult.IsSuccess)
-                            _logger.LogError("An error happened while trying to get the status Id {statusToUpdate}. Error : {error}", statusToUpdate, statusResult.Error);
+                        var consumeResult = consumer.Consume(TimeSpan.FromSeconds(5));
+                        if (consumeResult == null)
+                            continue;
 
-                        currentTransaction.Status = statusResult.IsSuccess ? statusResult.Data : currentTransaction.Status;
-                        var statusUpdateResult = await _transactionRepository.UpdateAsync(currentTransaction.Id, currentTransaction);
-                        if (!statusUpdateResult.IsSuccess)
-                            _logger.LogError("An error happened while trying to update the status of the transaction {transactionExternalId} to {statusToUpdate}", transaction.TransactionExternalId, statusToUpdate);
+                        var transactionEvent = consumeResult.Message.Value;
+                        if (transactionEvent is null)
+                            continue;
+
+                        var transaction = JsonSerializer.Deserialize<TransactionDTO>(transactionEvent);
+                        if (transaction is null)
+                            continue;
+
+                        var updateResult = await _transactionService.UpdateTransactionStatus(transaction);
+                        if (!updateResult.IsSuccess)
+                            _logger.LogError($"An unexpected error happened while trying to update the transaction {transaction.TransactionExternalId}: Error {updateResult.Error.Message}");
+                        else
+                            _logger.LogInformation($"Transaction updated {transaction.TransactionExternalId} to {transaction.Status}");
                     }
-
+                    catch (KafkaException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
+                    {
+                        _logger.LogWarning("The topic is not available yet. Retrying in 10 seconds...");
+                        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "An unexpected error happened at {nameof}", nameof(ExecuteAsync));
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "An unexpected error happened at {nameof}", nameof(ExecuteAsync));
+                    _logger.LogError(ex,"Unexpected error on {nameof}", nameof(ExecuteAsync));
+                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
                 }
             }
         }

@@ -5,6 +5,7 @@ using Common.Result;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Antifraud.Infrastructure.Producers;
 
@@ -26,12 +27,14 @@ public class AntifraudProducer : IAntifraudProducer
             Acks = Acks.Leader
         };
 
-        using var producer = new ProducerBuilder<Null, TransactionProcessedStatusDTO>(config).Build();
+        using var producer = new ProducerBuilder<Null, string>(config).Build();
         try
         {
+            var transaction = JsonSerializer.Serialize(transactionProcessedStatus);
+
             var deliveryResult = await producer.ProduceAsync(
                 "topic-transaction-status",
-                new Message<Null, TransactionProcessedStatusDTO> { Value = transactionProcessedStatus });
+                new Message<Null, string> { Value = transaction });
 
             _logger.LogInformation("Message delivered: {transactionEvent}", transactionProcessedStatus);
         }

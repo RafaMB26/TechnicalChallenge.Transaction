@@ -1,4 +1,5 @@
-﻿using Antifraud.Domain.Interfaces.Repositories;
+﻿using Antifraud.Domain.Interfaces.Producer;
+using Antifraud.Domain.Interfaces.Repositories;
 using Antifraud.Domain.Interfaces.Services;
 using Common.DTOs;
 using Common.Result;
@@ -10,10 +11,12 @@ public class AntifraudService : IAntifraudService
 {
     private readonly ILogger<AntifraudService> _logger;
     private readonly ITransactionRepository _transactionRepository;
-    public AntifraudService(ITransactionRepository transactionRepository, ILogger<AntifraudService> logger)
+    private readonly IAntifraudProducer _antifraudProducer;
+    public AntifraudService(ITransactionRepository transactionRepository, IAntifraudProducer antifraudProducer, ILogger<AntifraudService> logger)
     {
         _logger = logger;
         _transactionRepository = transactionRepository;
+        _antifraudProducer = antifraudProducer;
     }
 
     public async Task<Result<TransactionProcessedStatusDTO>> IsTransactionCorrectAsync(TransactionDTO transaction)
@@ -21,29 +24,33 @@ public class AntifraudService : IAntifraudService
         try
         {
             var resultTransaction = new TransactionProcessedStatusDTO();
-            if (transaction.Value > 2000)
-            {
-                resultTransaction.IsCorrect = false;
-                resultTransaction.RejectedReason = "Transaction amount is greater than 2000";
-                return new Result<TransactionProcessedStatusDTO>(resultTransaction);
-            }
-
-
             var todayTransactionSumResult = await _transactionRepository.GetSumOfTransactionsAsync(transaction.SourceAccountId);
             if (!todayTransactionSumResult.IsSuccess)
                 return new Result<TransactionProcessedStatusDTO>(todayTransactionSumResult.Error);
 
 
-            if (todayTransactionSumResult.Data > 20000)
+            if (transaction.Value > 2000)
+            {
+                resultTransaction.IsCorrect = false;
+                resultTransaction.RejectedReason = "Transaction amount is greater than 2000";
+            }
+            else if (todayTransactionSumResult.Data > 20000)
             {
                 resultTransaction.IsCorrect = false;
                 resultTransaction.RejectedReason = "Accumulated per day is greater than 20000";
-                return new Result<TransactionProcessedStatusDTO>(resultTransaction);
             }
-
-            resultTransaction.IsCorrect = true;
-
+            else
+            {
+                resultTransaction.IsCorrect = true;
+            }
             await _transactionRepository.AddTransactionValueAsync(transaction.SourceAccountId, transaction.Value);
+            var statusTransaction = new TransactionProcessedStatusDTO()
+            {
+                IsCorrect = resultTransaction.IsCorrect,
+                TransactionExternalId = transaction.TransactionExternalId,
+                RejectedReason = resultTransaction.RejectedReason
+            };
+            await _antifraudProducer.ProduceAsync(statusTransaction);
 
             return new Result<TransactionProcessedStatusDTO>(resultTransaction);
         }

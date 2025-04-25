@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Antifraud.Application\Antifraud.Application.csproj" />
     <ProjectReference Include="..\Antifraud.Domain\Antifraud.Domain.csproj" />
     <ProjectReference Include="..\Antifraud.Infrastructure\Antifraud.Infrastructure.csproj" />
   </ItemGroup>

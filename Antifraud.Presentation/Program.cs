@@ -1,5 +1,11 @@
+using Antifraud.Application.Services;
+using Antifraud.Domain.Config;
+using Antifraud.Domain.Interfaces.Producer;
 using Antifraud.Domain.Interfaces.Repositories;
+using Antifraud.Domain.Interfaces.Services;
+using Antifraud.Infrastructure.Producers;
 using Antifraud.Infrastructure.Repositories;
+using Antifraud.Presentation.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +13,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<IAntifraudService, AntifraudService>();
+
+builder.Services.AddHostedService<TransactionEventConsumer>();
+
+builder.Services.AddScoped<IAntifraudProducer, AntifraudProducer>();
+
+
+builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();

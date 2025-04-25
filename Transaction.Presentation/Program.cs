@@ -10,6 +10,7 @@ using Transaction.Domain.Interfaces.Services;
 using Transaction.Infrastructure;
 using Transaction.Infrastructure.Producers;
 using Transaction.Infrastructure.Repositories;
+using Transaction.Presentation.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<ITransactionStatusRepository, TransactionStatusRepository>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+
+builder.Services.AddHostedService<TransactionStatusEventConsumer>();
 
 builder.Services.AddSingleton<ITransactionProducer, TransactionProducer>();
 

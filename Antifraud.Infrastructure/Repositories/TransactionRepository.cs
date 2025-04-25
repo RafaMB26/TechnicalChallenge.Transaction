@@ -22,9 +22,10 @@ public class TransactionRepository : ITransactionRepository
     {
         try
         {
-            var today = DateTime.Today;
+            var today = DateTime.Today.ToString("yyyyMMdd");
             var key = string.Format(ACCOUNT_TODAY_BALANCE, today, source);
             var sum = await _db.StringGetAsync(key);
+
             return new Result<decimal>(Convert.ToDecimal(sum));
         }
         catch (Exception ex)
@@ -43,7 +44,7 @@ public class TransactionRepository : ITransactionRepository
                 return new Result<bool>(currentResult.Error);
 
             var newBalance = currentResult.Data + amount;
-            var today = DateTime.Today;
+            var today = DateTime.Today.ToString("yyyyMMdd");
             var key = string.Format(ACCOUNT_TODAY_BALANCE, today, source);
             await _db.StringSetAsync(key, newBalance.ToString(), TimeSpan.FromDays(7));
             return new Result<bool>(true);
