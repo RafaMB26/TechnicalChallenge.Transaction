@@ -16,7 +16,7 @@ public class Result<T>
     {
         get
         {
-            return Error is not null && String.IsNullOrEmpty(Error.Message);
+            return !(Error is not null && String.IsNullOrEmpty(Error.Message));
         }
     }
     public Error Error { get; set; }
