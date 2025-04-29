@@ -10,13 +10,14 @@ public class Result<T>
     public Result(Error error)
     {
         Error = error;
+        Data = default(T);
     }
 
     public bool IsSuccess
     {
         get
         {
-            return !(Error is not null && String.IsNullOrEmpty(Error.Message));
+            return Error is null;
         }
     }
     public Error Error { get; set; }
