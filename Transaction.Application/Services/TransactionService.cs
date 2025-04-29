@@ -117,35 +117,37 @@ public class TransactionService : ITransactionService
     public async Task<Result<TransactionDTO>> UpdateTransactionStatus(TransactionProcessedStatusDTO transactionStatus)
     {
         var currentTransactionResult = await _transactionRepository.GetTransactionByPublicIdAsync(transactionStatus.TransactionExternalId);
-        if (currentTransactionResult.IsSuccess && currentTransactionResult.Data is not null)
+        if(!currentTransactionResult.IsSuccess)
         {
-            var statusToUpdate = transactionStatus.IsCorrect ? TransactionStatusEnum.Approved : TransactionStatusEnum.Rejected;
-            var currentTransaction = currentTransactionResult.Data!;
-            var statusResult = await _transactionStatusRepository.GetTransactionTypeByName(statusToUpdate);
-
-            if (!statusResult.IsSuccess)
-                _logger.LogError("An error happened while trying to get the status Id {statusToUpdate}. Error : {error}", statusToUpdate, statusResult.Error);
-
-            currentTransaction.Status = statusResult.IsSuccess ? statusResult.Data : currentTransaction.Status;
-            var statusUpdateResult = await _transactionRepository.UpdateAsync(currentTransaction.Id, currentTransaction);
-            if (!statusUpdateResult.IsSuccess)
-                _logger.LogError("An error happened while trying to update the status of the transaction {transactionExternalId} to {statusToUpdate}", transactionStatus.TransactionExternalId, statusToUpdate);
-
-            var updatedTransaction = new TransactionDTO()
-            {
-                CreatedAt = currentTransaction.CreatedAt,
-                SourceAccountId = currentTransaction.SourceAccountId,
-                Status = currentTransaction.Status.Id,
-                TargetAccountId = currentTransaction.TargetAccountId,
-                TransactionExternalId = currentTransaction.TransactionExternalId,
-                TransferTypeId = currentTransaction.TransferTypeId,
-                Value = currentTransaction.Value
-            };
-            return new Result<TransactionDTO>(updatedTransaction);
+            return new Result<TransactionDTO>(currentTransactionResult.Error);
+        }
+        if(currentTransactionResult.Data is null)
+        {
+            return new Result<TransactionDTO>(new Error($"The transaction {transactionStatus.TransactionExternalId} does not exist.", 404));
         }
 
-        return new Result<TransactionDTO>(currentTransactionResult.Error);
+        var statusToUpdate = transactionStatus.IsCorrect ? TransactionStatusEnum.Approved : TransactionStatusEnum.Rejected;
+        var currentTransaction = currentTransactionResult.Data!;
+        var statusResult = await _transactionStatusRepository.GetTransactionTypeByName(statusToUpdate);
 
-        
+        if (!statusResult.IsSuccess)
+            _logger.LogError("An error happened while trying to get the status Id {statusToUpdate}. Error : {error}", statusToUpdate, statusResult.Error);
+
+        currentTransaction.Status = statusResult.IsSuccess ? statusResult.Data : currentTransaction.Status;
+        var statusUpdateResult = await _transactionRepository.UpdateAsync(currentTransaction.Id, currentTransaction);
+        if (!statusUpdateResult.IsSuccess)
+            _logger.LogError("An error happened while trying to update the status of the transaction {transactionExternalId} to {statusToUpdate}", transactionStatus.TransactionExternalId, statusToUpdate);
+
+        var updatedTransaction = new TransactionDTO()
+        {
+            CreatedAt = currentTransaction.CreatedAt,
+            SourceAccountId = currentTransaction.SourceAccountId,
+            Status = currentTransaction.Status.Id,
+            TargetAccountId = currentTransaction.TargetAccountId,
+            TransactionExternalId = currentTransaction.TransactionExternalId,
+            TransferTypeId = currentTransaction.TransferTypeId,
+            Value = currentTransaction.Value
+        };
+        return new Result<TransactionDTO>(updatedTransaction);
     }
 }
