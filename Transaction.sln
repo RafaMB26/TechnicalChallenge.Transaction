@@ -36,6 +36,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transaction.Application.Test", "Transaction.Application.Test\Transaction.Application.Test.csproj", "{100D53EE-ED2F-4C7B-A8C4-0890E31F5F39}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antifraud.Application.Test", "Antifraud.Application.Test\Antifraud.Application.Test.csproj", "{2235323A-F69E-4328-BDE3-0B697186C420}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{100D53EE-ED2F-4C7B-A8C4-0890E31F5F39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{100D53EE-ED2F-4C7B-A8C4-0890E31F5F39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{100D53EE-ED2F-4C7B-A8C4-0890E31F5F39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2235323A-F69E-4328-BDE3-0B697186C420}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2235323A-F69E-4328-BDE3-0B697186C420}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2235323A-F69E-4328-BDE3-0B697186C420}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2235323A-F69E-4328-BDE3-0B697186C420}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,6 +103,7 @@ Global
 		{AFBA4BAA-CA4B-4F4E-8B6F-3FD93D041833} = {5E5C36EB-9467-4FBB-8E57-53C431449A98}
 		{13450CFD-6FAC-4DEC-97BC-D52FC3537FEB} = {96067225-00C8-4589-85FB-42A7F6C4DE01}
 		{100D53EE-ED2F-4C7B-A8C4-0890E31F5F39} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{2235323A-F69E-4328-BDE3-0B697186C420} = {5E5C36EB-9467-4FBB-8E57-53C431449A98}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6CBBC445-BA41-4CC2-B813-016DF8EF6F69}
