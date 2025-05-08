@@ -1,20 +1,49 @@
 ## Reto Técnico
 
 ### Arquitectura 
-La solución sigue los principios de **Clean Architecture**, estructurada en los siguientes proyectos:
+La solución sigue los principios de **Arquitectura Hexagonal**, estructurada en los siguientes proyectos:
 
-- **Presentation**  
-  Implementa los endpoints para la creación y consulta de transacciones. También incluye los _consumers_ de los _topics_ de Kafka, ya que están implementados como `BackgroundServices`.
+- **Ports**  
+  Implementa los endpoints para la creación y consulta de transacciones. Incluye los _consumers_ de los _topics_ de Kafka, ya que están implementados como `BackgroundServices`. 
+  Ademas, agrega las dependencias de persistencia de datos en PostreSQL y Redis.
+
+- **Adapters**    
+  Implementa los _producers_ de los topics de Kafka. 
 
 - **Application**  
-  Contiene la lógica de negocio de la aplicación implementada.
+  Contiene la lógica de negocio implementada de la aplicación.
 
 - **Domain**  
   Define las entidades, contratos (interfaces) de los repositorios y las reglas de negocio puras.
 
 - **Infrastructure**  
-  Implementa los repositorios, la persistencia en base de datos y los _producers_ de los _topics_ de Kafka.
+  Agrega e implementa los servicios por los proyectos de Application, Ports y Adapters.
 
+### Nomenclatura de los proyectos:
+
+ Los nombres de los proyectos siguen una convención basada en el microservicio y su propósito.
+
+  El nombrado de los proyectos esta divido por el microservicio en el que se usa:
+
+- Antifraud
+- Transaction
+    
+**Tipo de proyecto.** 
+
+- Ports
+- Adptares
+- Application
+- Domain
+- Infrastructure
+
+**Tecnología utilizada:** (opcional, como tercer segmento)
+
+- Redis
+- Kafka
+- Postgres
+- Api
+
+Por ejemplo: Antifraud.Adapter.KafkaProducer o Antifraud.Ports.Redis.
 
 ### Diagrama
 

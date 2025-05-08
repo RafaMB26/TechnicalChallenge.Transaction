@@ -47,6 +47,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transaction.Ports.KafkaCons
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antifraud.Ports.Redis", "Antifraud.PortsRedis\Antifraud.Ports.Redis.csproj", "{F6909775-D6BA-48AA-B47B-D3843384FDC1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{55D32961-9D00-40E2-ACCF-A8293583E86D}"
+	ProjectSection(SolutionItems) = preProject
+		Diagram.png = Diagram.png
+		docker-compose.yaml = docker-compose.yaml
+		ReadMe.md = ReadMe.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
